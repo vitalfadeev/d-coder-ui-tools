@@ -1,44 +1,19 @@
 # Meta
 
 head
-    title Sample
+    title: Sample
 style
     base
-        border 3px solid #ccc
+        border: 3px solid #ccc
 
-        event WM_KEYDOWN VK_SPACE
+        on: WM_KEYDOWN VK_SPACE
             addClass selected
-            + selected
-
-        event WM_KEYDOWN 
-          VK_SPACE
-            addClass selected
-          VK_ESCAPE
-            addClass selected
-
-        event
-          WM_KEYDOWN 
-            VK_SPACE
-              addClass selected
-            VK_ESCAPE
-              addClass selected
 
     selected
-        border 3px solid #0c0
+        border: 3px solid #0c0
 body
   e base
-    border 3px solid
-
-  event WM_KEYDOWN VK_SPACE
-      {
-          addClass( "selected" );
-      }
-  event WM_KEYDOWN VK_SPACE
-      selected 
-        next
-          + selected
-      body
-        send keyPressed VK_SPACE
+    border: 3px solid
 
 
 // style.d
@@ -46,6 +21,7 @@ struct base
 {
     string name = "base";
 
+    static
     void setter( Element* element )
     {
         with ( element.computed )
@@ -56,7 +32,19 @@ struct base
         }
     }
 
-    void process_KeyboardKeyEvent( Element* element, KeyboardKeyEvent event )
+    static
+    void on( Element* element, Event* event )
+    {
+        // route by event type
+        switch ( event.type )
+        {
+            case WM_KEYDOWN: on_WM_KEYDOWN( element, event ); break;
+            default:
+        }
+    }
+
+    static
+    void on_WM_KEYDOWN( Element* element, Event* event )
     {
         if ( event.code == VK_SPACE )
         {
@@ -64,8 +52,67 @@ struct base
         }
     }
 }
+
+
+// default element
+struct e_1
+{
+    Element _element = { 
+      computed: { 
+        borderWidth: 3.px,
+        borderStyle: LineStyle.solid
+      }
+    };
+    alias _element this;
+
+}
   
 
+// variations
+style
+    base
+        on WM_KEYDOWN 
+          VK_SPACE
+            addClass selected
+          VK_ESCAPE
+            addClass selected
+
+        on
+          WM_KEYDOWN 
+            VK_SPACE
+              addClass selected
+            VK_ESCAPE
+              addClass selected
+
+        on WM_ADDCLASS
+          log this event
+
+        on WM_ADDCLASS selected
+          log selected
+
+        on WM_FOCUSED
+          log focused
+
+body
+  on WM_KEYDOWN VK_SPACE
+      {
+          addClass( "selected" );
+      }
+
+  on WM_KEYDOWN VK_SPACE
+      selected
+        - selected
+        next
+          + selected
+      body
+        send keyPressed VK_SPACE
+
+// selector
+selected - by class name
+next     - next sibling element in tree
+body     - by class name
+
+//  setters
 border: 1px solid #ccc
     // settters
     borderTopWidth         = 1.px;
@@ -149,11 +196,14 @@ void main()
 window
   WM_KEYDOWN
     focused element
+      // class
       foreach ( cls; classes )
-        if ( cls.process_KeyboardKeyEvent )
-          cls.process_KeyboardKeyEvent( element, event )
-      element
-        process_KeyboardKeyEvent( element, event )
+        if ( cls.on )
+          cls.on( element, event )
+      // element
+        if ( element.on )
+          element.on( element, event )
 
-  event( message, code )
-  onKeyDown( code )
+  // window
+  on( event )
+  on_WM_KEYDOWN( event )

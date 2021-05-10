@@ -24,6 +24,7 @@ import ui.parse.t.parser           : ParsedClass;
 import ui.parse.t.parser           : StyleSection;
 import ui.parse.t.tokenize         : readColon;
 import ui.parse.t.charreader       : CharReader;
+import ui.parse.t.on               : parse_on;
 import std.string                  : startsWith;
 import std.conv                    : to;
 
@@ -39,7 +40,7 @@ void parseSection_style( R )( ref R range, Tok[] tokenized, size_t indent, Doc* 
         "border",
         "width",
         "height",
-        "event",
+        "on",
     ];
 
     StyleSection* styleSection = &doc.style;
@@ -51,6 +52,7 @@ void parseSection_style( R )( ref R range, Tok[] tokenized, size_t indent, Doc* 
     if ( !range.empty )
     for ( string line; !range.empty; range.popFront() )
     {
+    parse_readed_line:
         line = range.front;
 
         tokenized = tokenize( line, &indentLength );
@@ -71,24 +73,30 @@ void parseSection_style( R )( ref R range, Tok[] tokenized, size_t indent, Doc* 
             {
                 auto word = tokenized.front.s;
 
-                // event: ...
-                if ( word == "event" )
-                {
-                    parse_event( range, tokenized, curElement.evemtCallbacks );
-                }
-                else
-
                 // property: ...
+                static
+                foreach( PROP; properties )
                 {
+                    // on: ...
                     static
-                    foreach( PROP; properties )
+                    if ( PROP == "on" )
                     {
-                        if ( word == PROP )
+                        if ( word == "on" )
                         {
-                            writeln( "parse_", PROP );
-                            mixin( "parse_" ~ PROP ~ "( tokenized, curElement.setters );" );
-                            writeln( "parsed_", PROP, ": ", curElement.setters );
+                            if ( parse_on( range, tokenized, indentLength, curElement.eventCallbacks ) )
+                            {
+                                goto parse_readed_line;
+                            }
                         }
+                    }
+                    else
+
+                    // border:..., color:..., background:...
+                    if ( word == PROP )
+                    {
+                        writeln( "parse_", PROP );
+                        mixin( "parse_" ~ PROP ~ "( tokenized, curElement.setters );" );
+                        writeln( "parsed_", PROP, ": ", curElement.setters );
                     }
                 }
             }

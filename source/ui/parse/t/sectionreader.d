@@ -25,9 +25,10 @@ struct SectionReader
 
     string[] front()
     {
-        import std.range : empty;
-        import std.range : front;
-        import std.range : popFront;
+        import std.range  : empty;
+        import std.range  : front;
+        import std.range  : popFront;
+        import std.string : stripRight;
 
         string[] _front;
 
@@ -36,8 +37,15 @@ struct SectionReader
         stream.popFront();
 
         // take next lines
+        if ( !stream.empty )
         foreach ( line; stream )
         {
+            // skip empty lines
+            if ( line.stripRight.length == 0 )
+            {
+                continue;
+            }
+
             if ( isNotWhite( line ) )
             {
                 break;
@@ -51,14 +59,23 @@ struct SectionReader
 
     void popFront()
     {
-        import std.range : empty;
+        import std.range  : empty;
+        import std.range  : front;
+        import std.string : stripRight;
 
         // skip 1st
         stream.popFront();
 
         // skip section lines
+        if ( !stream.empty )
         for ( ; !stream.empty; stream.popFront() )
         {
+            // skip empty lines
+            if ( stream.front.stripRight.length == 0 )
+            {
+                continue;
+            }
+
             if ( isNotWhite( stream.front ) )
             {
                 break;

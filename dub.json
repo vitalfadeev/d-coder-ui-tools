@@ -12,4 +12,8 @@
     {
         "d-coder-ui" : { "path" : "../d-coder-ui" }
     },
- }
+     "preGenerateCommands":
+    [
+        "rmgenerated.bat"
+    ],
+}

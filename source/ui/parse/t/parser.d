@@ -27,8 +27,9 @@ struct Doc
 
 struct ParsedClass
 {
-    string   className;
-    string[] setters;
+    string          className;
+    string[]        setters;
+    EventCallback[] eventCallbacks;
 }
 
 struct StyleSection
@@ -54,19 +55,41 @@ struct ParsedElement
     string           tagName;
     string[]         classes;
     string[]         setters;
-    EvemtCallback[]  evemtCallbacks;
-    //PropList         properties;
+    EventCallback[]  eventCallbacks;
     ParsedElement*   parent;
     ParsedElement*[] childs;
 }
 
 
-struct EvemtCallback
+struct EventCallback
 {
-    string name; // = "process_KeyboardKeyEvent"
-    string code; // 
+    string   name;      // = "WM_KEYPRESS"
+    Tok[]    args;      // = "VK_SPACE"
+    string[] eventBody; // = [ "  addClass selected" ]
+
+
+    auto arg1()
+    {
+        import std.range : empty;
+        import std.range : front;
+
+        return !args.empty ? args.front.s : "";
+    }
+
     /*
-    void process_KeyboardKeyEvent( Element* element, KeyboardKeyEvent event )
+    static
+    void on( Element* element, Event* event )
+    {
+        // route by event type
+        switch ( event.type )
+        {
+            case WM_KEYDOWN: on_WM_KEYDOWN( element, event ); break;
+            default:
+        }
+    }
+
+    static
+    void on_WM_KEYDOWN( Element* element, Event* event )
     {
         if ( event.code == VK_SPACE )
         {
@@ -101,6 +124,7 @@ class TParser
         auto sectionReader = SectionReader( s );
 
         //foreach ( section; sectionReader )
+        if ( !sectionReader.empty )
         for ( string[] section; !sectionReader.empty; sectionReader.popFront() )
         {
             section = sectionReader.front;
@@ -139,6 +163,11 @@ void dump( Doc* doc )
         foreach( setter; cls.setters )
         {
             writeln( "    ", setter );
+        }
+
+        foreach( ecb; cls.eventCallbacks )
+        {
+            writeln( "    ", ecb );
         }
     }
 
