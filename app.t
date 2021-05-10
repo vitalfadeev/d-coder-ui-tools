@@ -4,11 +4,8 @@ style
   stage
     border: 1px solid
     width:  100px
-
-    on: WM_KEYDOWN VK_SPACE
-      {
-        addClass( "selected" );
-      }
+    on: WM_LBUTTONDOWN
+        ~selected
   dark
     border: 2px solid
   intro

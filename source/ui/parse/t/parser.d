@@ -66,6 +66,8 @@ struct EventCallback
     string   name;      // = "WM_KEYPRESS"
     Tok[]    args;      // = "VK_SPACE"
     string[] eventBody; // = [ "  addClass selected" ]
+    string   src;       // on: WM_KEYPRESS VK_SPACE
+    size_t   srcLine;   // 123
 
 
     auto arg1()

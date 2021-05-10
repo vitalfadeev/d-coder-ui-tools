@@ -21,10 +21,11 @@ bool parse_on( R )( ref R range, Tok[] tokenized, size_t parentIndent, ref Event
         auto eventArgs = args.length > 1 ? args[ 1 .. $ ] : []; // = VK_SPACE
 
         //
+        auto src = range.front;
         range.popFront(); // skip on: ...
         auto eventBody = read_event_body( range, parentIndent );
 
-        eventCallbacks ~= EventCallback( eventName, eventArgs, eventBody );
+        eventCallbacks ~= EventCallback( eventName, eventArgs, eventBody, src );
     }
 
     return true;

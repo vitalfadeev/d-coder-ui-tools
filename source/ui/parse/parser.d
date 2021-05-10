@@ -1,16 +1,24 @@
 module ui.parse.parser;
 
 import std.stdio;
-import ui.parse.t.parser : Doc;
-import std.range : empty;
-import std.range : front;
-import std.stdio : File;
-import std.file  : exists;
-import std.file  : mkdir;
-import std.path  : buildPath;
-import std.string : stripLeft;
-import std.string : startsWith;
-import ui.parse.t.parser : EventCallback;
+import ui.parse.t.parser     : Doc;
+import std.range             : empty;
+import std.range             : front;
+import std.stdio             : File;
+import std.file              : exists;
+import std.file              : mkdir;
+import std.path              : buildPath;
+import std.range             : drop;
+import std.string            : stripLeft;
+import std.string            : startsWith;
+import ui.parse.t.parser     : EventCallback;
+import ui.parse.t.tokenize   : Tok;
+import ui.parse.t.charreader : CharReader;
+import ui.parse.t.tokenize   : TokType;
+import ui.parse.t.tokenize   : isWhite;
+import ui.parse.t.tokenize   : skipSpaces;
+import ui.parse.t.tokenize   : readRoundBrackets;
+import ui.parse.t.tokenize   : readDoubleQuoted;
 
 // create .def
 // dub build
@@ -165,6 +173,14 @@ void generate_style( Doc* doc )
     s ~=        "\n";
     } // foreach doc.style.classes
 
+    // register classes
+    s ~=        "static\n";
+    s ~=        "this()\n";
+    s ~=        "{\n";
+    foreach ( cls; doc.style.classes )
+    s ~= format!"    registerClass!%s();\n"( cls.className );
+    s ~=        "}\n";
+
 
     writeln( s );
 
@@ -259,27 +275,32 @@ string generate_on( Doc* doc, ref EventCallback[] eventCallbacks )
     foreach ( eventArg; byArg.orderedKeys )
     {
     auto byArgGroup = byArg.array[ eventArg ];
-    foreach ( ecb; byArgGroup )
-    {
     if ( eventArg == "" )
     {
     s ~=        "        with ( element )\n";
     s ~=        "        {\n";
-    s ~=        generate_event_code( "        ", ecb );
+    foreach ( ecb; byArgGroup )
+    {
+    s ~= format!"            // %s\n"( ecb.src );
+    s ~=        generate_event_code( "            ", ecb );
+    }
     s ~=        "            return;\n";
     s ~=        "        }\n";
     s ~=        "        \n";
     }
-    else
+    else // eventArg != ""
     {
     s ~= format!"        if ( event.arg1 == %s )\n"( eventArg );
     s ~=        "        with ( element )\n";
     s ~=        "        {\n";
+    foreach ( ecb; byArgGroup )
+    {
+    s ~= format!"            // %s\n"( ecb.src );
     s ~=        generate_event_code( "            ", ecb );
+    }
     s ~=        "            return;\n";
     s ~=        "        }\n";
-    } //       if eventArg
-    } //     foreach byArgGroup
+    } //     if eventArg
     } //   foreach eventArg
     s ~=        "    }\n";
     s ~=        "    \n";
@@ -458,12 +479,195 @@ auto generate_meta_code( EventCallback* ecb, string indent )
     import std.format : format;
 
     string s;
+    Tok[]  tokenized;
+    size_t indentLength;
 
     foreach ( line; ecb.eventBody )
     {
-        s ~= format!"%s%s( %s );\n"( indent, "functionName", "functionArg.quote" );
+        tokenized = tokenize_meta_code( line, &indentLength );
+        writeln( "tokenized: ", tokenized );
+
+        if ( tokenized.length > 0 )
+        if ( tokenized.front.type == TokType.operator )
+        {
+            auto operator    = translateOperator( tokenized.front.s );
+            // args
+            if ( tokenized.length >= 2 )
+            {
+                auto operatorArg = tokenized.drop(1).front.s;
+                s ~= format!"%s%s( %s );\n"( indent, operator, operatorArg.quote );
+            }
+            else 
+
+            // operator only
+            {
+                s ~= format!"%s%s();\n"( indent, operator );
+            }
+        }        
     }
 
     return s;
+}
+
+auto translateOperator( string s )
+{
+    switch ( s )
+    {
+        case "+": return "addClass";
+        case "-": return "delClass";
+        case "?": return "hasClass";
+        case "~": return "toggleClass";
+        default: return s;
+    }
+}
+
+Tok[] tokenize_meta_code( string s, size_t* indentLength )
+{
+    // ~selected
+    //   read indent
+    //   read operator
+    //   read args
+    import std.range : back;
+    import ui.parse.t.tokenize : readIndent;
+    import ui.parse.t.tokenize : readKeyword;
+    import ui.parse.t.tokenize : skipSpaces;
+
+    Tok[] tokenized;
+
+    auto reader = CharReader( s );
+
+    // indent
+    readIndent( reader, indentLength );
+
+    // keyword
+    readOperator( reader, tokenized );
+
+    // skip spaces
+    skipSpaces( reader );
+
+    // has args
+    if ( !reader.empty )
+    {
+        auto c = reader.front;
+
+        read_operator_arg:
+
+        // class
+        readOperatorArg( reader, tokenized );
+
+        // skip spaces
+        skipSpaces( reader );
+        
+        if ( !reader.empty )
+        {
+            c = reader.front;
+            goto read_operator_arg;  // the last .class will be added to list after the prior .class
+        }
+    }
+
+    return tokenized;
+}
+
+
+bool readOperator( ref CharReader reader, ref Tok[] tokenized )
+{
+    auto startState = reader.getState();
+
+    const
+    string[] operators =
+    [
+        "+",
+        "-",
+        "?",
+        "~",
+    ];
+
+    reader_loop:
+    for ( string s; !reader.empty; reader.popFront() )
+    {
+        s = reader.front;
+
+        if ( isWhite( s ) )
+        {
+            break;
+        }
+        else
+
+        static
+        foreach ( OP; operators )
+        {        
+            if ( s.startsWith( OP ) )
+            {
+                reader.popFront(); // skip operator
+                break reader_loop;
+            }
+        }
+    }
+
+
+    //
+    if ( reader != startState )
+    {
+        tokenized ~= Tok( TokType.operator, reader.readedOf( startState ), 0, startState.pos );
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool readOperatorArg( ref CharReader reader, ref Tok[] tokenized )
+{
+    auto startState = reader.getState();
+    auto argState   = reader.getState();
+
+    for ( string s; !reader.empty; reader.popFront() )
+    {
+        s = reader.front;
+
+        if ( isWhite( s ) )
+        {
+            tokenized ~= Tok( TokType.operatorArg, reader.readedOf( argState ), 0, startState.pos );
+            skipSpaces( reader );
+            argState = reader.getState();
+        }
+        else
+
+        if ( s.startsWith( "(" ) )
+        {
+            if ( readRoundBrackets( reader ) )
+            {
+                tokenized ~= Tok( TokType.operatorArg, reader.readedOf( argState ), 0, startState.pos );
+                argState = reader.getState();
+            }
+            else
+            {
+                assert( 0, "error: got '(', but not got ')'" ~ argState.s );
+            }
+        }
+        else
+
+        if ( s.startsWith( "\"" ) )
+        {
+            if ( readDoubleQuoted( reader ) )
+            {
+                tokenized ~= Tok( TokType.operatorArg, reader.readedOf( argState ), 0, startState.pos );
+                argState = reader.getState();
+            }
+            else
+            {
+                assert( 0, "error: got '\"', but not got '\"'" ~ argState.s );
+            }
+        }
+    }
+
+    // to EOF
+    if ( reader != argState )
+    {
+        tokenized ~= Tok( TokType.operatorArg, reader.readedOf( argState ), 0, argState.pos );
+    }
+
+    return true;
 }
 

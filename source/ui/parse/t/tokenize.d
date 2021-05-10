@@ -15,7 +15,9 @@ enum TokType
     id,
     property,
     colon,
-    propertyArg
+    propertyArg,
+    operator,
+    operatorArg
 }
 
 struct Tok
