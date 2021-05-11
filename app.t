@@ -4,6 +4,8 @@ style
   stage
     border: 1px solid
     width:  100px
+    margin: 100px
+
     on: WM_LBUTTONDOWN
         ~selected
   dark

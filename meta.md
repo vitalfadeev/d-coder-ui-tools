@@ -207,3 +207,15 @@ window
   // window
   on( event )
   on_WM_KEYDOWN( event )
+
+// event
+window
+  WM_LBUTTONDOWN
+    window.on()
+      body.on()
+        element.on()
+          WM_LBUTTONDOWN_ed
+        element.on()
+      body.on()
+    window.on()
+

@@ -40,6 +40,11 @@ void parseSection_style( R )( ref R range, Tok[] tokenized, size_t indent, Doc* 
         "border",
         "width",
         "height",
+        "margin",
+        "margin-left",
+        "margin-top",
+        "margin-right",
+        "margin-bottom",
         "on",
     ];
 

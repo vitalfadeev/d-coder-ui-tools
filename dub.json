@@ -14,6 +14,6 @@
     },
      "preGenerateCommands":
     [
-        "rmgenerated.bat"
+         "start /wait cmd /C IF EXIST source\\generated rmdir /q /s source\\generated",
     ],
 }
