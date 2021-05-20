@@ -20,5 +20,3 @@ void main()
 
     parse( "app.t" );
 }
-
-

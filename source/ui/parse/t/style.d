@@ -10,7 +10,18 @@ import std.string                  : splitLines;
 import ui.parse.css.stringiterator : StringIterator;
 import ui.parse.css.border         : parse_border;
 import ui.parse.css.width          : parse_width;
-import ui.parse.css.height         : parse_height;
+import ui.parse.css.height         : parse_height; 
+import ui.parse.css.margin         : parse_margin; 
+import ui.parse.css.margin_top     : parse_margin_top;
+import ui.parse.css.margin_left    : parse_margin_left;
+import ui.parse.css.margin_right   : parse_margin_right;
+import ui.parse.css.margin_bottom  : parse_margin_bottom;
+import ui.parse.css.display        : parse_display;
+import ui.parse.css.padding        : parse_padding;
+import ui.parse.css.padding_top    : parse_padding_top;
+import ui.parse.css.padding_left   : parse_padding_left;
+import ui.parse.css.padding_right  : parse_padding_right;
+import ui.parse.css.padding_bottom : parse_padding_bottom;
 import ui.parse.t.tokenize         : Tok;
 import ui.parse.t.parser           : ParsedElement;
 import ui.parse.t.tokenize         : readIndent;
@@ -27,6 +38,7 @@ import ui.parse.t.charreader       : CharReader;
 import ui.parse.t.on               : parse_on;
 import std.string                  : startsWith;
 import std.conv                    : to;
+import std.string                  : replace;
 
 
 void parseSection_style( R )( ref R range, Tok[] tokenized, size_t indent, Doc* doc )
@@ -40,11 +52,17 @@ void parseSection_style( R )( ref R range, Tok[] tokenized, size_t indent, Doc* 
         "border",
         "width",
         "height",
+        "display",
         "margin",
         "margin-left",
         "margin-top",
         "margin-right",
         "margin-bottom",
+        "padding",
+        "padding-top",
+        "padding-right",
+        "padding-bottom",
+        "padding-left",
         "on",
     ];
 
@@ -100,7 +118,7 @@ void parseSection_style( R )( ref R range, Tok[] tokenized, size_t indent, Doc* 
                     if ( word == PROP )
                     {
                         writeln( "parse_", PROP );
-                        mixin( "parse_" ~ PROP ~ "( tokenized, curElement.setters );" );
+                        mixin( "parse_" ~ PROP.replace( "-", "_" ) ~ "( tokenized, curElement.setters );" );
                         writeln( "parsed_", PROP, ": ", curElement.setters );
                     }
                 }

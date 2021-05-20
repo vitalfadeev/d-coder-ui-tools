@@ -76,3 +76,10 @@ enum LineWidthType : byte
     medium  =  2,
     thick   =  3,
 }
+
+// percentage
+struct Percentage
+{
+    float number;
+    alias number this;
+}

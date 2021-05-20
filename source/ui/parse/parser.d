@@ -19,6 +19,8 @@ import ui.parse.t.tokenize   : isWhite;
 import ui.parse.t.tokenize   : skipSpaces;
 import ui.parse.t.tokenize   : readRoundBrackets;
 import ui.parse.t.tokenize   : readDoubleQuoted;
+import std.string : indexOf;
+import std.string : leftJustify;
 
 // create .def
 // dub build
@@ -160,6 +162,7 @@ void generate_style( Doc* doc )
     s ~=        "    {\n";
     s ~=        "        with ( element.computed )\n";
     s ~=        "        {\n";
+    reformat_setters( cls.setters );
     foreach ( setter; cls.setters )
     {
     s ~= format!"            %s\n"( setter );
@@ -490,12 +493,18 @@ auto generate_meta_code( EventCallback* ecb, string indent )
         if ( tokenized.length > 0 )
         if ( tokenized.front.type == TokType.operator )
         {
-            auto operator    = translateOperator( tokenized.front.s );
+            auto operator = translateOperator( tokenized.front.s );
             // args
             if ( tokenized.length >= 2 )
             {
-                auto operatorArg = tokenized.drop(1).front.s;
-                s ~= format!"%s%s( %s );\n"( indent, operator, operatorArg.quote );
+                if ( operator == "addClass" ||
+                     operator == "delClass" || 
+                     operator == "hasClass" || 
+                     operator == "toggleClass" )
+                {
+                    auto operatorArg = tokenized.drop(1).front.s;
+                    s ~= format!"%s%s!%s();\n"( indent, operator, operatorArg );
+                }
             }
             else 
 
@@ -671,3 +680,29 @@ bool readOperatorArg( ref CharReader reader, ref Tok[] tokenized )
     return true;
 }
 
+
+void reformat_setters( ref string[] setters )
+{
+    size_t max_eq_pos;
+
+    // fin max =
+    foreach ( s; setters )
+    {
+        auto eq_pos = s.indexOf( '=' );
+        if ( eq_pos != -1 )
+        if ( eq_pos > max_eq_pos )
+        {
+            max_eq_pos = eq_pos;
+        }
+    }
+
+    // format
+    foreach ( ref s; setters )
+    {
+        auto eq_pos = s.indexOf( '=' );
+        if ( eq_pos != -1 )
+        {
+            s = s[ 0 .. eq_pos ].leftJustify( max_eq_pos, ' ' ) ~ s[ eq_pos .. $ ];
+        }
+    }
+}

@@ -65,8 +65,8 @@ bool parse_length( StringIterator range, Length* len )
 
             // wrong unit
             {
-                assert( 0, "error: wrong unit: " ~ ssss ~ ": in the: " ~ range.s );
-                //return false;
+                //Log.error( "wrong unit: " ~ ssss ~ ": in the: " ~ range.s );
+                return false;
             }
         }
     }
